@@ -22,8 +22,9 @@ const DAYS: { value: Day; label: string }[] = [
 export default function LecturerSchedulePage() {
   const [day, setDay] = useState<Day | 'all'>('all')
 
-  const { data: entries, isLoading, error } = useFetch(() =>
-    myScheduleApi.getSchedule(day === 'all' ? undefined : day),
+  const { data: entries, isLoading, error } = useFetch(
+    () => myScheduleApi.getSchedule(day === 'all' ? undefined : day),
+    [day],
   )
 
   const allSlots = entries

@@ -12,14 +12,16 @@ interface UseFetchReturn<T> extends FetchState<T> {
   refresh: () => void
 }
 
-export function useFetch<T>(fetchFn: () => Promise<T>): UseFetchReturn<T> {
+export function useFetch<T>(
+  fetchFn: () => Promise<T>,
+  deps: unknown[] = [],
+): UseFetchReturn<T> {
   const [state, setState] = useState<FetchState<T>>({
     data: null,
     isLoading: true,
     error: null,
   })
 
-  // Stable ref so callers don't need to memoize fetchFn
   const fnRef = useRef(fetchFn)
   fnRef.current = fetchFn
 
@@ -37,9 +39,9 @@ export function useFetch<T>(fetchFn: () => Promise<T>): UseFetchReturn<T> {
       )
   }, [])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  // Re-run whenever deps change (in addition to mount)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [load, ...deps])
 
   return { ...state, refresh: load }
 }

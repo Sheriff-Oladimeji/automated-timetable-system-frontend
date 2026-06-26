@@ -38,6 +38,7 @@ export default function StudentTimetablePage() {
         day: day === 'all' ? undefined : day,
       })
     },
+    [deptId, level, day],
   )
 
   const allSlots = entries

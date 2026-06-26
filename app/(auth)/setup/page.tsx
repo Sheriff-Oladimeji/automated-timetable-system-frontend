@@ -1,42 +1,41 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/hooks/use-auth'
-import { ApiError } from '@/lib/api'
+import { authApi, ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CalendarDays, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { CalendarDays, Loader2, ShieldCheck } from 'lucide-react'
 
-function LoginToasts() {
-  const params = useSearchParams()
-  useEffect(() => {
-    if (params.get('setup') === 'done') toast.success('Admin account created. Please sign in.')
-    if (params.get('registered') === '1') toast.success('Account created. Please sign in.')
-  }, [params])
-  return null
-}
-
-export default function LoginPage() {
-  const { login } = useAuth()
+export default function SetupPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (password !== confirm) {
+      setError('Passwords do not match')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
     setError(null)
     setIsSubmitting(true)
     try {
-      await login(email, password)
+      await authApi.registerAdmin(email, password)
+      router.push('/login?setup=done')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Login failed')
+      setError(err instanceof ApiError ? err.message : 'Setup failed')
     } finally {
       setIsSubmitting(false)
     }
@@ -44,20 +43,23 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full items-center justify-center bg-muted/40 px-4">
-      <Suspense><LoginToasts /></Suspense>
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-2">
             <CalendarDays className="size-8 text-primary" />
             <span className="text-2xl font-bold tracking-tight">CSET Timetable</span>
           </div>
-          <p className="text-sm text-muted-foreground">Sign in to your account</p>
+          <p className="text-sm text-muted-foreground">First-time setup</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Enter your credentials to continue</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="size-5" /> Create Admin Account
+            </CardTitle>
+            <CardDescription>
+              This can only be done once. After this, use the admin panel to manage all accounts.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,11 +70,11 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="s-email">Admin Email</Label>
                 <Input
-                  id="email"
+                  id="s-email"
                   type="email"
-                  placeholder="you@cset.edu.ng"
+                  placeholder="admin@cset.edu.ng"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -81,29 +83,41 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="s-pw">Password</Label>
                 <Input
-                  id="password"
+                  id="s-pw"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="s-cpw">Confirm Password</Label>
+                <Input
+                  id="s-cpw"
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                  autoComplete="new-password"
                 />
               </div>
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                Sign in
+                Create Admin Account
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">
-          New student?{' '}
-          <Link href="/register" className="underline underline-offset-4">
-            Create an account
+          Already have an account?{' '}
+          <Link href="/login" className="underline underline-offset-4">
+            Sign in
           </Link>
         </p>
       </div>

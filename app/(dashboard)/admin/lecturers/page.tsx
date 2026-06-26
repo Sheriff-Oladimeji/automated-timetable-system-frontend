@@ -15,7 +15,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { BookOpen, Plus, Trash2, Users } from 'lucide-react'
+import { BookOpen, Loader2, Plus, Trash2, Users, X } from 'lucide-react'
+import type { LecturerCourseOut, CourseOut } from '@/types'
 
 const TITLES = ['Dr.', 'Prof.', 'Mr.', 'Mrs.', 'Ms.', 'Engr.']
 
@@ -101,16 +102,22 @@ function AddLecturerDialog({
 
 function AssignCourseDialog({
   lecturerId,
-  courses,
-  onAssigned,
+  allCourses,
+  assignments,
+  onChanged,
 }: {
   lecturerId: number
-  courses: { id: number; code: string; name: string }[]
-  onAssigned: () => void
+  allCourses: CourseOut[]
+  assignments: LecturerCourseOut[]
+  onChanged: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [courseId, setCourseId] = useState('')
   const [isPending, setIsPending] = useState(false)
+
+  const myAssignments = assignments.filter((a) => a.lecturer_id === lecturerId)
+  const assignedCourseIds = new Set(myAssignments.map((a) => a.course_id))
+  const availableCourses = allCourses.filter((c) => !assignedCourseIds.has(c.id))
 
   async function handleAssign() {
     if (!courseId) return
@@ -119,8 +126,7 @@ function AssignCourseDialog({
       await lecturersApi.assignCourse({ lecturer_id: lecturerId, course_id: Number(courseId) })
       toast.success('Course assigned')
       setCourseId('')
-      setOpen(false)
-      onAssigned()
+      onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to assign course')
     } finally {
@@ -128,26 +134,70 @@ function AssignCourseDialog({
     }
   }
 
+  async function handleUnassign(assignmentId: number, courseName: string) {
+    try {
+      await lecturersApi.unassignCourse(assignmentId)
+      toast.success(`${courseName} unassigned`)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to unassign')
+    }
+  }
+
+  const courseLabel = (courseId: number) => {
+    const c = allCourses.find((c) => c.id === courseId)
+    return c ? `${c.code} — ${c.name}` : '—'
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon"><BookOpen className="size-4" /></Button>
+        <Button variant="ghost" size="icon" title="Manage course assignments">
+          <BookOpen className="size-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Assign Course</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Course Assignments</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <Select value={courseId} onValueChange={setCourseId}>
-            <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
-            <SelectContent>
-              {courses.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleAssign} disabled={isPending || !courseId}>
-              {isPending ? 'Assigning…' : 'Assign'}
-            </Button>
-          </DialogFooter>
+          {myAssignments.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Currently assigned</p>
+              {myAssignments.map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                  <span>{courseLabel(a.course_id)}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 text-destructive"
+                    onClick={() => handleUnassign(a.id, courseLabel(a.course_id))}
+                  >
+                    <X className="size-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No courses assigned yet.</p>
+          )}
+
+          {availableCourses.length > 0 && (
+            <div className="space-y-2 border-t pt-4">
+              <p className="text-sm font-medium text-muted-foreground">Assign a course</p>
+              <div className="flex gap-2">
+                <Select value={courseId} onValueChange={setCourseId}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Select course" /></SelectTrigger>
+                  <SelectContent>
+                    {availableCourses.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>{c.code} — {c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleAssign} disabled={isPending || !courseId}>
+                  {isPending ? <Loader2 className="size-4 animate-spin" /> : 'Assign'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -155,26 +205,32 @@ function AssignCourseDialog({
 }
 
 export default function LecturersPage() {
-  const { data: lecturers, isLoading: loadingL, refresh } = useFetch(lecturersApi.list)
+  const { data: lecturers, isLoading: loadingL, refresh: refreshL } = useFetch(lecturersApi.list)
   const { data: departments, isLoading: loadingD } = useFetch(departmentsApi.list)
   const { data: courses, isLoading: loadingC } = useFetch(coursesApi.list)
+  const { data: assignments, isLoading: loadingA, refresh: refreshA } = useFetch(lecturersApi.listAssignments)
 
   const deptName = (id: number) => departments?.find((d) => d.id === id)?.name ?? '—'
+
+  function handleChanged() {
+    refreshL()
+    refreshA()
+  }
 
   async function handleDelete(id: number, name: string) {
     await lecturersApi.remove(id)
     toast.success(`Lecturer "${name}" deleted`)
-    refresh()
+    handleChanged()
   }
 
-  const isLoading = loadingL || loadingD || loadingC
+  const isLoading = loadingL || loadingD || loadingC || loadingA
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Lecturers"
         description="Teaching staff and their course assignments"
-        action={<AddLecturerDialog departments={departments ?? []} onCreated={refresh} />}
+        action={<AddLecturerDialog departments={departments ?? []} onCreated={handleChanged} />}
       />
 
       {isLoading ? (
@@ -189,32 +245,40 @@ export default function LecturersPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Courses</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lecturers.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">{l.title} {l.first_name} {l.last_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{l.email}</TableCell>
-                  <TableCell><Badge variant="outline">{deptName(l.department_id)}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <AssignCourseDialog
-                        lecturerId={l.id}
-                        courses={courses ?? []}
-                        onAssigned={refresh}
-                      />
-                      <ConfirmDialog
-                        trigger={<Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="size-4" /></Button>}
-                        title="Delete lecturer"
-                        description={`Delete ${l.title} ${l.last_name}?`}
-                        onConfirm={() => handleDelete(l.id, `${l.title} ${l.last_name}`)}
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {lecturers.map((l) => {
+                const count = assignments?.filter((a) => a.lecturer_id === l.id).length ?? 0
+                return (
+                  <TableRow key={l.id}>
+                    <TableCell className="font-medium">{l.title} {l.first_name} {l.last_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{l.email}</TableCell>
+                    <TableCell><Badge variant="outline">{deptName(l.department_id)}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant={count > 0 ? 'secondary' : 'outline'}>{count} course{count !== 1 ? 's' : ''}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <AssignCourseDialog
+                          lecturerId={l.id}
+                          allCourses={courses ?? []}
+                          assignments={assignments ?? []}
+                          onChanged={handleChanged}
+                        />
+                        <ConfirmDialog
+                          trigger={<Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="size-4" /></Button>}
+                          title="Delete lecturer"
+                          description={`Delete ${l.title} ${l.last_name}?`}
+                          onConfirm={() => handleDelete(l.id, `${l.title} ${l.last_name}`)}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>

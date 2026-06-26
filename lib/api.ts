@@ -81,6 +81,24 @@ export const authApi = {
     }),
 
   me: () => request<UserOut>('/auth/me'),
+
+  registerAdmin: (email: string, password: string) =>
+    request<{ message: string; id: number }>('/auth/register-admin', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+
+  registerStudent: (data: {
+    email: string
+    password: string
+    matric_number: string
+    department_id: number
+    level: number
+  }) =>
+    request<{ message: string }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 }
 
 // ─── FACULTIES ────────────────────────────────────────────────────────────
@@ -162,6 +180,11 @@ export const lecturersApi = {
 
   remove: (id: number) =>
     request<void>(`/resources/lecturers/${id}`, { method: 'DELETE' }),
+
+  listAssignments: (lecturerId?: number) => {
+    const qs = lecturerId ? `?lecturer_id=${lecturerId}` : ''
+    return request<LecturerCourseOut[]>(`/resources/lecturer-courses${qs}`)
+  },
 
   assignCourse: (data: LecturerCourseCreate) =>
     request<LecturerCourseOut>('/resources/lecturer-courses', {
