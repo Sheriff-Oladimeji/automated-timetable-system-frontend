@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth, ApiError } from '@/contexts/auth-context'
+import { useAuth } from '@/hooks/use-auth'
+import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/auth-context'
+import { useAuth } from '@/hooks/use-auth'
 import { roleDashboardPath } from '@/lib/auth'
 import { Skeleton } from '@/components/ui/skeleton'
 
