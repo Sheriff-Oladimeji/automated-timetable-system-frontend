@@ -2,16 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { schedulerApi, timetableApi } from '@/lib/api'
+import { schedulerApi, timetableApi, lecturersApi, roomsApi, timeSlotsApi } from '@/lib/api'
 import { useFetch } from '@/hooks/use-fetch'
 import { PageHeader } from '@/components/shared/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarDays, Loader2, Play, Globe } from 'lucide-react'
+import { AlertTriangle, CalendarDays, CheckCircle2, Loader2, Play, Globe, XCircle } from 'lucide-react'
 import type { SchedulerRunOut, SolverStatus } from '@/types'
 
 const STATUS_BADGE: Record<SolverStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
@@ -28,6 +29,11 @@ const isTerminal = (s: SolverStatus) =>
 
 export default function SchedulerPage() {
   const { data: runs, isLoading, refresh } = useFetch(schedulerApi.listRuns)
+  const { data: assignments } = useFetch(lecturersApi.listAssignments)
+  const { data: rooms } = useFetch(roomsApi.list)
+  const { data: timeSlots } = useFetch(timeSlotsApi.list)
+
+  const [isTriggering, setIsTriggering] = useState(false)
   const [activeRunId, setActiveRunId] = useState<number | null>(null)
   const [activeStatus, setActiveStatus] = useState<SolverStatus | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -62,7 +68,25 @@ export default function SchedulerPage() {
 
   useEffect(() => () => stopPolling(), [stopPolling])
 
+  // Prerequisite checks
+  const hasAssignments = (assignments?.length ?? 0) > 0
+  const hasRooms = (rooms?.length ?? 0) > 0
+  const hasTimeSlots = (timeSlots?.length ?? 0) > 0
+  const prerequisitesMet = hasAssignments && hasRooms && hasTimeSlots
+  const prerequisitesLoaded = assignments !== undefined && rooms !== undefined && timeSlots !== undefined
+
+  const prereqs = [
+    { label: 'Lecturer–course assignments', met: hasAssignments, hint: 'Go to Lecturers → assign courses' },
+    { label: 'Rooms added', met: hasRooms, hint: 'Go to Rooms → add at least one room' },
+    { label: 'Time slots configured', met: hasTimeSlots, hint: 'Go to Time Slots → add weekly slots' },
+  ]
+
+  const isRunning = activeStatus === 'running' || activeStatus === 'pending'
+  const buttonDisabled = isTriggering || isRunning || !prerequisitesMet
+
   async function handleTrigger() {
+    if (buttonDisabled) return
+    setIsTriggering(true)
     try {
       const run = await schedulerApi.trigger()
       setActiveRunId(run.id)
@@ -72,6 +96,8 @@ export default function SchedulerPage() {
       startPolling(run.id)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start scheduler')
+    } finally {
+      setIsTriggering(false)
     }
   }
 
@@ -95,20 +121,50 @@ export default function SchedulerPage() {
     }
   }
 
-  const isRunning = activeStatus === 'running' || activeStatus === 'pending'
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Scheduler"
         description="Trigger the CP-SAT solver and manage scheduling runs"
         action={
-          <Button onClick={handleTrigger} disabled={isRunning}>
-            {isRunning ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Play className="mr-2 size-4" />}
-            {isRunning ? 'Running…' : 'Run Scheduler'}
+          <Button onClick={handleTrigger} disabled={buttonDisabled} title={!prerequisitesMet ? 'Complete prerequisites below first' : undefined}>
+            {(isTriggering || isRunning) ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Play className="mr-2 size-4" />}
+            {isTriggering ? 'Starting…' : isRunning ? 'Running…' : 'Run Scheduler'}
           </Button>
         }
       />
+
+      {/* Prerequisites card */}
+      {prerequisitesLoaded && !prerequisitesMet && (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertTitle>Prerequisites not met — cannot run scheduler</AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1">
+              {prereqs.map((p) => (
+                <li key={p.label} className="flex items-center gap-2 text-sm">
+                  {p.met
+                    ? <CheckCircle2 className="size-4 shrink-0 text-green-500" />
+                    : <XCircle className="size-4 shrink-0" />}
+                  <span className={p.met ? 'line-through opacity-60' : ''}>{p.label}</span>
+                  {!p.met && <span className="text-xs opacity-70">— {p.hint}</span>}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* All good banner */}
+      {prerequisitesLoaded && prerequisitesMet && !isRunning && (
+        <Alert>
+          <CheckCircle2 className="size-4 text-green-500" />
+          <AlertTitle>Ready to schedule</AlertTitle>
+          <AlertDescription>
+            {assignments!.length} course assignment{assignments!.length !== 1 ? 's' : ''} · {rooms!.length} room{rooms!.length !== 1 ? 's' : ''} · {timeSlots!.length} time slot{timeSlots!.length !== 1 ? 's' : ''}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {isRunning && (
         <Card>
@@ -148,7 +204,7 @@ export default function SchedulerPage() {
                   <TableHead>Time (s)</TableHead>
                   <TableHead>Objective</TableHead>
                   <TableHead>Published</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Notes / Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -164,7 +220,10 @@ export default function SchedulerPage() {
                     <TableCell>
                       {run.is_published ? <Badge>Published</Badge> : <span className="text-muted-foreground text-sm">—</span>}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-64">
+                      {run.notes && (
+                        <p className="text-xs text-muted-foreground mb-1" title={run.notes}>{run.notes}</p>
+                      )}
                       {isTerminal(run.status) && (
                         <div className="flex items-center gap-2">
                           {run.is_published ? (
@@ -175,9 +234,6 @@ export default function SchedulerPage() {
                             </Button>
                           )}
                         </div>
-                      )}
-                      {run.notes && (
-                        <p className="mt-1 text-xs text-muted-foreground truncate max-w-48" title={run.notes}>{run.notes}</p>
                       )}
                     </TableCell>
                   </TableRow>

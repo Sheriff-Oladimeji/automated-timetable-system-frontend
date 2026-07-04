@@ -180,7 +180,13 @@ function AssignCourseDialog({
             <p className="text-sm text-muted-foreground">No courses assigned yet.</p>
           )}
 
-          {availableCourses.length > 0 && (
+          {allCourses.length === 0 ? (
+            <p className="text-sm text-muted-foreground border-t pt-4">
+              No courses exist yet. Go to <strong>Courses</strong> in the sidebar to add courses first.
+            </p>
+          ) : availableCourses.length === 0 && myAssignments.length > 0 ? (
+            <p className="text-sm text-muted-foreground border-t pt-4">All available courses are already assigned.</p>
+          ) : availableCourses.length > 0 ? (
             <div className="space-y-2 border-t pt-4">
               <p className="text-sm font-medium text-muted-foreground">Assign a course</p>
               <div className="flex gap-2">
@@ -197,7 +203,7 @@ function AssignCourseDialog({
                 </Button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

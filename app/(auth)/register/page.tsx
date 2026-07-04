@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { authApi, ApiError } from '@/lib/api'
-import { studentApi } from '@/lib/api'
+import { authApi, ApiError, studentApi } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,10 +15,11 @@ import { CalendarDays, Loader2 } from 'lucide-react'
 import { useFetch } from '@/hooks/use-fetch'
 
 const LEVELS = [100, 200, 300, 400, 500, 600, 700]
+const MATRIC_RE = /^\d{4}\/\d{5}$/
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { data: departments, isLoading: loadingDepts } = useFetch(studentApi.getDepartments)
+  const { data: departments, isLoading: loadingDepts, error: deptsError } = useFetch(studentApi.getDepartments)
 
   const [fields, setFields] = useState({
     email: '',
@@ -38,6 +38,10 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!MATRIC_RE.test(fields.matric_number)) {
+      setError('Matric number must be in the format YYYY/NNNNN (e.g. 2020/15210)')
+      return
+    }
     if (fields.password !== fields.confirm) {
       setError('Passwords do not match')
       return
@@ -63,6 +67,9 @@ export default function RegisterPage() {
       setIsSubmitting(false)
     }
   }
+
+  const noDepts = !loadingDepts && !deptsError && departments?.length === 0
+  const canSubmit = !isSubmitting && !!fields.department_id && !!fields.level && !noDepts
 
   return (
     <div className="flex min-h-full items-center justify-center bg-muted/40 px-4 py-10">
@@ -90,12 +97,28 @@ export default function RegisterPage() {
                 </Alert>
               )}
 
+              {deptsError && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    Could not load departments — make sure the server is running.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {noDepts && (
+                <Alert>
+                  <AlertDescription>
+                    No departments available yet. Ask the admin to add departments first.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="r-email">Email</Label>
                 <Input
                   id="r-email"
                   type="email"
-                  placeholder="you@student.uniosun.edu.ng"
+                  placeholder="your@email.com"
                   value={fields.email}
                   onChange={(e) => set('email', e.target.value)}
                   required
@@ -107,11 +130,12 @@ export default function RegisterPage() {
                 <Label htmlFor="r-matric">Matric Number</Label>
                 <Input
                   id="r-matric"
-                  placeholder="e.g. CSC/2021/001"
+                  placeholder="e.g. 2020/15210"
                   value={fields.matric_number}
                   onChange={(e) => set('matric_number', e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">Format: YYYY/NNNNN</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -120,9 +144,13 @@ export default function RegisterPage() {
                   {loadingDepts ? (
                     <Skeleton className="h-10 w-full" />
                   ) : (
-                    <Select value={fields.department_id} onValueChange={(v) => set('department_id', v)}>
+                    <Select
+                      value={fields.department_id}
+                      onValueChange={(v) => set('department_id', v)}
+                      disabled={!departments?.length}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder={departments?.length ? 'Select' : 'None yet'} />
                       </SelectTrigger>
                       <SelectContent>
                         {departments?.map((d) => (
@@ -172,11 +200,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting || !fields.department_id || !fields.level}
-              >
+              <Button type="submit" className="w-full" disabled={!canSubmit}>
                 {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Create Account
               </Button>
