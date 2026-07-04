@@ -126,7 +126,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map(({ label, href, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
-                  <SidebarMenuButton asChild isActive={pathname === href}>
+                  <SidebarMenuButton asChild isActive={pathname === href || (href.split('/').length > 2 && pathname.startsWith(href))}>
                     <Link href={href}>
                       <Icon className="size-4" />
                       {label}

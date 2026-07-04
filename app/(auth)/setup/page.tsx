@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { authApi, ApiError } from '@/lib/api'
@@ -13,11 +13,23 @@ import { CalendarDays, Loader2, ShieldCheck } from 'lucide-react'
 
 export default function SetupPage() {
   const router = useRouter()
+  const [checking, setChecking] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Guard: redirect to login if an admin already exists
+  useEffect(() => {
+    authApi.setupStatus().then(({ needs_setup }) => {
+      if (!needs_setup) {
+        router.replace('/login?setup=exists')
+      } else {
+        setChecking(false)
+      }
+    }).catch(() => setChecking(false))
+  }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -40,6 +52,8 @@ export default function SetupPage() {
       setIsSubmitting(false)
     }
   }
+
+  if (checking) return null
 
   return (
     <div className="flex min-h-full items-center justify-center bg-muted/40 px-4">

@@ -99,6 +99,9 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  setupStatus: () =>
+    request<{ needs_setup: boolean }>('/auth/setup-status'),
 }
 
 // ─── FACULTIES ────────────────────────────────────────────────────────────

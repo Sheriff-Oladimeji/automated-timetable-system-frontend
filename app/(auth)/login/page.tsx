@@ -17,6 +17,7 @@ function LoginToasts() {
   const params = useSearchParams()
   useEffect(() => {
     if (params.get('setup') === 'done') toast.success('Admin account created. Please sign in.')
+    if (params.get('setup') === 'exists') toast.info('An admin account already exists. Please sign in.')
     if (params.get('registered') === '1') toast.success('Account created. Please sign in.')
   }, [params])
   return null

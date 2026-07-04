@@ -15,7 +15,7 @@ import { CalendarDays } from 'lucide-react'
 import type { ScheduleEntryOut } from '@/types'
 
 export default function TimetablePage() {
-  const { data: runs, isLoading: loadingRuns } = useFetch(schedulerApi.listRuns)
+  const { data: runs, isLoading: loadingRuns, refresh: refreshRuns } = useFetch(schedulerApi.listRuns)
   const { data: slots, isLoading: loadingSlots } = useFetch(timeSlotsApi.list)
   const [selectedRunId, setSelectedRunId] = useState<string>('')
   const [entries, setEntries] = useState<ScheduleEntryOut[] | null>(null)
@@ -46,6 +46,7 @@ export default function TimetablePage() {
         await timetableApi.publish(selectedRun.id)
         toast.success('Timetable published — lecturers and students can now see it')
       }
+      refreshRuns()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed')
     }

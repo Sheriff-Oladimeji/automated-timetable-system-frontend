@@ -102,11 +102,13 @@ function AddLecturerDialog({
 
 function AssignCourseDialog({
   lecturerId,
+  lecturerDeptId,
   allCourses,
   assignments,
   onChanged,
 }: {
   lecturerId: number
+  lecturerDeptId: number
   allCourses: CourseOut[]
   assignments: LecturerCourseOut[]
   onChanged: () => void
@@ -117,7 +119,10 @@ function AssignCourseDialog({
 
   const myAssignments = assignments.filter((a) => a.lecturer_id === lecturerId)
   const assignedCourseIds = new Set(myAssignments.map((a) => a.course_id))
-  const availableCourses = allCourses.filter((c) => !assignedCourseIds.has(c.id))
+  // Only show courses from this lecturer's department that aren't already assigned
+  const availableCourses = allCourses.filter(
+    (c) => c.department_id === lecturerDeptId && !assignedCourseIds.has(c.id)
+  )
 
   async function handleAssign() {
     if (!courseId) return
@@ -270,6 +275,7 @@ export default function LecturersPage() {
                       <div className="flex items-center gap-1">
                         <AssignCourseDialog
                           lecturerId={l.id}
+                          lecturerDeptId={l.department_id}
                           allCourses={courses ?? []}
                           assignments={assignments ?? []}
                           onChanged={handleChanged}

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFetch } from '@/hooks/use-fetch'
 import { studentApi } from '@/lib/api'
+import { useAuth } from '@/hooks/use-auth'
 import { TimetableGrid } from '@/components/timetable/timetable-grid'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
@@ -23,11 +24,20 @@ const DAYS: { value: Day; label: string }[] = [
 const LEVELS = [100, 200, 300, 400, 500, 600, 700]
 
 export default function StudentTimetablePage() {
+  const { user } = useAuth()
   const { data: departments, isLoading: loadingDepts } = useFetch(studentApi.getDepartments)
 
+  // Pre-populate from the student's registered profile
   const [deptId, setDeptId] = useState<string>('')
   const [level, setLevel] = useState<string>('')
   const [day, setDay] = useState<Day | 'all'>('all')
+
+  useEffect(() => {
+    if (user?.student) {
+      setDeptId(String(user.student.department_id))
+      setLevel(String(user.student.level))
+    }
+  }, [user])
 
   const { data: entries, isLoading: loadingEntries } = useFetch(
     () => {

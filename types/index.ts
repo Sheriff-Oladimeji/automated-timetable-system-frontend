@@ -13,11 +13,18 @@ export interface Token {
   role: UserRole
 }
 
+export interface StudentProfile {
+  department_id: number
+  level: number
+  matric_number: string
+}
+
 export interface UserOut {
   id: number
   email: string
   role: UserRole
   is_active: boolean
+  student?: StudentProfile | null
 }
 
 // Resources
