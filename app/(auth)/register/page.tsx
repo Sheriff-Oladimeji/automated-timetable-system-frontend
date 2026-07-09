@@ -208,12 +208,20 @@ export default function RegisterPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link href="/login" className="underline underline-offset-4">
-            Sign in
-          </Link>
-        </p>
+        <div className="space-y-2 text-center text-sm text-muted-foreground">
+          <p>
+            Already have an account?{' '}
+            <Link href="/login/student" className="underline underline-offset-4 text-foreground">
+              Sign in as Student
+            </Link>
+          </p>
+          <p>
+            Not a student?{' '}
+            <Link href="/login/lecturer" className="underline underline-offset-4 text-foreground">
+              Sign in as Lecturer
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )

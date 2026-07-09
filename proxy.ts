@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/register', '/setup']
+const PUBLIC_PATHS = ['/', '/login', '/register', '/setup']
 
 export function proxy(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value

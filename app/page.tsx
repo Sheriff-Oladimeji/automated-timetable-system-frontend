@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
   CalendarDays, Clock, BookOpen, Users, Building2,
-  CheckCircle2, ShieldCheck, GraduationCap, UserCheck,
+  CheckCircle2, GraduationCap, UserCheck,
 } from 'lucide-react'
 
 const FEATURES = [
@@ -24,20 +24,6 @@ const FEATURES = [
 
 const ROLES = [
   {
-    icon: ShieldCheck,
-    role: 'Administrator',
-    color: 'text-blue-600 dark:text-blue-400',
-    bg: 'bg-blue-50 dark:bg-blue-950/40',
-    border: 'border-blue-200 dark:border-blue-800',
-    description: 'Set up departments, courses, rooms, and time slots. Run the scheduler and publish timetables.',
-    actions: (
-      <Button className="w-full" asChild>
-        <Link href="/login">Admin Sign In</Link>
-      </Button>
-    ),
-    note: 'Account created during first-time system setup.',
-  },
-  {
     icon: UserCheck,
     role: 'Lecturer',
     color: 'text-emerald-600 dark:text-emerald-400',
@@ -46,7 +32,7 @@ const ROLES = [
     description: 'View your weekly teaching schedule and mark the time slots when you are unavailable.',
     actions: (
       <Button className="w-full" asChild>
-        <Link href="/login">Lecturer Sign In</Link>
+        <Link href="/login/lecturer">Sign In as Lecturer</Link>
       </Button>
     ),
     note: 'Login credentials are provided by the administrator.',
@@ -61,7 +47,7 @@ const ROLES = [
     actions: (
       <div className="flex gap-2">
         <Button variant="outline" className="flex-1" asChild>
-          <Link href="/login">Sign In</Link>
+          <Link href="/login/student">Sign In</Link>
         </Button>
         <Button className="flex-1" asChild>
           <Link href="/register">Register</Link>
@@ -98,7 +84,7 @@ export default function LandingPage() {
               <Link href="/register">Register</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link href="/login">Sign In</Link>
+              <Link href="/login/student">Sign In</Link>
             </Button>
           </div>
         </div>
