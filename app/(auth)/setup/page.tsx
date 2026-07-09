@@ -45,7 +45,7 @@ export default function SetupPage() {
     setIsSubmitting(true)
     try {
       await authApi.registerAdmin(email, password)
-      router.push('/login?setup=done')
+      router.push('/login/admin?setup=done')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Setup failed')
     } finally {
