@@ -110,7 +110,7 @@ export default function LandingPage() {
         <p className="mb-6 text-center text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Who are you?
         </p>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 max-w-2xl mx-auto w-full">
           {ROLES.map(({ icon: Icon, role, color, bg, border, description, actions, note }) => (
             <div key={role} className={`rounded-xl border ${border} ${bg} p-6 flex flex-col gap-4`}>
               <div className="flex items-center gap-2">
