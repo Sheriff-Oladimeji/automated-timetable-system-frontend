@@ -68,8 +68,6 @@ export default function LandingPage() {
     }
   }, [user, isLoading, router])
 
-  if (isLoading) return null
-
   return (
     <div className="flex min-h-full flex-col bg-background">
       {/* Nav */}

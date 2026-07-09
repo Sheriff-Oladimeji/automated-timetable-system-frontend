@@ -22,5 +22,16 @@ export function AuthInitializer() {
       .finally(() => setLoading(false))
   }, [setUser, setLoading])
 
+  // Keep the Render free-tier backend warm — ping every 14 minutes so it
+  // never hits the 15-minute inactivity sleep threshold.
+  useEffect(() => {
+    const BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
+    if (!BASE) return
+    const id = setInterval(() => {
+      fetch(`${BASE}/auth/setup-status`).catch(() => {})
+    }, 14 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+
   return null
 }
