@@ -24,7 +24,7 @@ export default function SetupPage() {
   useEffect(() => {
     authApi.setupStatus().then(({ needs_setup }) => {
       if (!needs_setup) {
-        router.replace('/login?setup=exists')
+        router.replace('/login/admin?setup=exists')
       } else {
         setChecking(false)
       }
@@ -130,8 +130,8 @@ export default function SetupPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="underline underline-offset-4">
-            Sign in
+          <Link href="/login/admin" className="underline underline-offset-4">
+            Admin sign in
           </Link>
         </p>
       </div>

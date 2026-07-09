@@ -60,7 +60,7 @@ export default function RegisterPage() {
         department_id: Number(fields.department_id),
         level: Number(fields.level),
       })
-      router.push('/login?registered=1')
+      router.push('/login/student?registered=1')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Registration failed')
     } finally {
