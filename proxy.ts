@@ -6,7 +6,7 @@ const PUBLIC_PATHS = ['/', '/login', '/register', '/setup']
 export function proxy(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value
   const { pathname } = request.nextUrl
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
+  const isPublic = PUBLIC_PATHS.some((p) => p === '/' ? pathname === '/' : pathname.startsWith(p))
 
   if (!token && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
